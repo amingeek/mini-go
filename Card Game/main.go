@@ -7,7 +7,10 @@ func main() {
 	cards := []string{"A man from moon", newCard()}
 	fmt.Println(cards)
 	cards = append(cards, "After a bad day")
-	fmt.Println(cards)
+
+	for i, card := range cards {
+		fmt.Println(i, card)
+	}
 
 }
 
