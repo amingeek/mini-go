@@ -10,7 +10,7 @@ import (
 
 func main() {
 	var names []string
-	// var numbers []int
+	var numbers []int
 	scanner := bufio.NewScanner(os.Stdin)
 
 	scanner.Scan()
@@ -22,7 +22,8 @@ func main() {
 
 	for i := 0; i < n; i++ {
 		var nums []int
-		var fasele []int
+		run := 0
+		count := 0
 
 		scanner.Scan()
 		list := strings.Fields(scanner.Text())
@@ -38,10 +39,22 @@ func main() {
 			nums = append(nums, num)
 		}
 
-		for k := 1; k < len(nums); k++ {
-			fasele = append(fasele, nums[k]-nums[k-1])
+		for j := 2; j < len(nums); j++ {
+
+			if nums[j]-nums[j-1] == nums[j-1]-nums[j-2] {
+				run++
+				count += run
+			} else {
+				run = 0
+			}
+
 		}
 
-		fmt.Println(names, nums, fasele)
+		numbers = append(numbers, count)
+
+	}
+
+	for i := 0; i < len(names); i++ {
+		fmt.Println(names[i], numbers[i])
 	}
 }
