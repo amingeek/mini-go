@@ -27,6 +27,13 @@ type Game struct {
 	mu      sync.Mutex
 }
 
+func formatName(name string) string {
+	if len(name) == 0 {
+		return ""
+	}
+	return strings.ToUpper(string(name[0])) + strings.ToLower(name[1:])
+}
+
 func NewGame(mapIds []int) (*Game, error) {
 	game := &Game{
 		players: make(map[string]*Player),
@@ -65,7 +72,7 @@ func (g *Game) ConnectPlayer(name string) error {
 	}
 
 	g.players[normalized] = &Player{
-		name:     name,
+		name:     formatName(name),
 		location: 0,
 		chanel:   make(chan string, 100),
 		game:     g,
@@ -90,26 +97,20 @@ func (g *Game) SwitchPlayerMap(name string, mapId int) error {
 		return errors.New("map not found")
 	}
 
-	oldMap, oldExists := g.maps[player.location]
-
-	// اگر بازیکن در همان مپ است، ارور بده
 	if player.location == mapId {
 		return errors.New("player already in this map")
 	}
 
-	// حذف بازیکن از مپ قبلی
+	oldMap, oldExists := g.maps[player.location]
 	if oldExists {
 		oldMap.mu.Lock()
 		delete(oldMap.players, normalized)
 		oldMap.mu.Unlock()
-		oldMap.chanel <- fmt.Sprintf("%s left the map", player.name)
 	}
 
-	// اضافه کردن بازیکن به مپ جدید
 	newMap.mu.Lock()
 	newMap.players[normalized] = true
 	newMap.mu.Unlock()
-	newMap.chanel <- fmt.Sprintf("%s entered the map", player.name)
 
 	player.location = mapId
 
@@ -149,6 +150,15 @@ func (m *Map) FanOutMessages() {
 		for playerName := range m.players {
 			player := m.game.players[playerName]
 			if player != nil {
+
+				senderEndIndex := strings.Index(msg, " says:")
+				if senderEndIndex != -1 {
+					senderName := msg[:senderEndIndex]
+					if strings.ToLower(senderName) == playerName {
+						continue
+					}
+				}
+
 				select {
 				case player.chanel <- msg:
 				default:
@@ -176,7 +186,9 @@ func (p *Player) SendMessage(msg string) error {
 		return errors.New("map not found")
 	}
 
-	m.chanel <- fmt.Sprintf("%s: %s", p.name, msg)
+	formattedName := formatName(p.name)
+	m.chanel <- fmt.Sprintf("%s says: %s", formattedName, msg)
+
 	return nil
 }
 
