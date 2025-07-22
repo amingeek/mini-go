@@ -11,12 +11,14 @@ type Player struct {
 	name     string
 	location int
 	chanel   chan string
+	game     *Game
 }
 
 type Map struct {
 	players map[string]bool
 	chanel  chan string
 	mu      sync.Mutex
+	game    *Game
 }
 
 type Game struct {
@@ -26,7 +28,10 @@ type Game struct {
 }
 
 func NewGame(mapIds []int) (*Game, error) {
-	maps := make(map[int]*Map)
+	game := &Game{
+		players: make(map[string]*Player),
+		maps:    make(map[int]*Map),
+	}
 
 	for _, id := range mapIds {
 		if id <= 0 {
@@ -36,17 +41,18 @@ func NewGame(mapIds []int) (*Game, error) {
 		m := &Map{
 			players: make(map[string]bool),
 			chanel:  make(chan string, 100),
+			game:    game, // تنظیم ارجاع به بازی
 		}
 
-		go m.FanOutMessages()
-
-		maps[id] = m
+		game.maps[id] = m
 	}
 
-	return &Game{
-		players: make(map[string]*Player),
-		maps:    maps,
-	}, nil
+	// بعد از ساخت کامل بازی، FanOutMessages را برای هر نقشه اجرا کن
+	for _, m := range game.maps {
+		go m.FanOutMessages()
+	}
+
+	return game, nil
 }
 
 func (g *Game) ConnectPlayer(name string) error {
@@ -62,6 +68,7 @@ func (g *Game) ConnectPlayer(name string) error {
 		name:     name,
 		location: 0,
 		chanel:   make(chan string, 100),
+		game:     g,
 	}
 
 	return nil
@@ -85,13 +92,26 @@ func (g *Game) SwitchPlayerMap(name string, mapId int) error {
 
 	oldMap, oldExists := g.maps[player.location]
 
-	player.location = mapId
+	// اگر بازیکن در همان مپ است، ارور بده
+	if player.location == mapId {
+		return errors.New("player already in this map")
+	}
 
+	// حذف بازیکن از مپ قبلی
 	if oldExists {
+		oldMap.mu.Lock()
+		delete(oldMap.players, normalized)
+		oldMap.mu.Unlock()
 		oldMap.chanel <- fmt.Sprintf("%s left the map", player.name)
 	}
 
+	// اضافه کردن بازیکن به مپ جدید
+	newMap.mu.Lock()
+	newMap.players[normalized] = true
+	newMap.mu.Unlock()
 	newMap.chanel <- fmt.Sprintf("%s entered the map", player.name)
+
+	player.location = mapId
 
 	return nil
 }
@@ -100,7 +120,6 @@ func (g *Game) GetPlayer(name string) (*Player, error) {
 	normalized := strings.ToLower(name)
 
 	g.mu.Lock()
-
 	defer g.mu.Unlock()
 
 	player, exists := g.players[normalized]
@@ -123,16 +142,44 @@ func (g *Game) GetMap(mapId int) (*Map, error) {
 }
 
 func (m *Map) FanOutMessages() {
+	for {
+		msg := <-m.chanel
+
+		m.mu.Lock()
+		for playerName := range m.players {
+			player := m.game.players[playerName]
+			if player != nil {
+				select {
+				case player.chanel <- msg:
+				default:
+				}
+			}
+		}
+		m.mu.Unlock()
+	}
 }
 
 func (p *Player) GetChannel() <-chan string {
-	return nil
+	return p.chanel
 }
 
 func (p *Player) SendMessage(msg string) error {
+	if p.location == 0 {
+		return errors.New("player is not in any map")
+	}
+
+	p.game.mu.Lock()
+	defer p.game.mu.Unlock()
+
+	m, exists := p.game.maps[p.location]
+	if !exists {
+		return errors.New("map not found")
+	}
+
+	m.chanel <- fmt.Sprintf("%s: %s", p.name, msg)
 	return nil
 }
 
 func (p *Player) GetName() string {
-	return ""
+	return p.name
 }
