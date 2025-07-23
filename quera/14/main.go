@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"unicode"
 )
 
 func tavan(n int) string {
@@ -25,19 +26,38 @@ func tavan(n int) string {
 	return "NO"
 }
 
-func main() {
-	scanner := bufio.NewScanner(os.Stdin)
+func findNumbers(s string) int {
 	n := 0
-	scanner.Scan()
-	// n, err := strconv.Atoi(scanner.Text())
-	text := scanner.Text()
-	for i := 0; i < len(text); i++ {
-		b, err := strconv.Atoi(string(text[i]))
+	current := ""
+
+	for _, v := range s {
+		if unicode.IsDigit(v) {
+			current += string(v)
+		} else if !unicode.IsDigit(v) {
+			b, err := strconv.Atoi(current)
+			if err == nil {
+				n += b
+				current = ""
+			}
+		}
+	}
+	if current != "" {
+		b, err := strconv.Atoi(current)
 		if err == nil {
 			n += b
+			current = ""
 		}
 	}
 
-	fmt.Println(tavan(n))
+	return n
+
+}
+
+func main() {
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	text := scanner.Text()
+
+	fmt.Println(tavan(findNumbers(text)))
 
 }
