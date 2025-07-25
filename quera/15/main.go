@@ -34,10 +34,11 @@ func ToLower(s string) string {
 }
 
 func (s *Store) AddProduct(name string, price float64, count int) error {
-	normalizedName := ToLower(name)
+	name = ToLower(name)
+
 	for _, n := range s.ProductsNames {
-		if n == normalizedName {
-			return fmt.Errorf("product '%s' already exists", normalizedName)
+		if n == name {
+			return fmt.Errorf("%s already exists", name)
 		}
 	}
 	if price <= 0 {
@@ -46,30 +47,27 @@ func (s *Store) AddProduct(name string, price float64, count int) error {
 	if count <= 0 {
 		return fmt.Errorf("count should be positive")
 	}
-	s.ProductsNames = append(s.ProductsNames, normalizedName)
-	s.ProductsPrices = append(s.ProductsPrices, float64(price))
+	s.ProductsNames = append(s.ProductsNames, name)
+	s.ProductsPrices = append(s.ProductsPrices, price)
 	s.ProductsCount = append(s.ProductsCount, count)
 
 	return nil
 }
-
 func (s *Store) GetProductCount(name string) (int, error) {
-	normalizedName := ToLower(name)
-
+	name = ToLower(name)
 	for i, n := range s.ProductsNames {
-		if n == normalizedName {
+		if n == name {
 			return s.ProductsCount[i], nil
 		}
 	}
 	return 0, fmt.Errorf("invalid product name")
-
 }
 
 func (s *Store) GetProductPrice(name string) (float64, error) {
-	normalizedName := ToLower(name)
+	name = ToLower(name)
 
 	for i, n := range s.ProductsNames {
-		if n == normalizedName {
+		if n == name {
 			return float64(s.ProductsPrices[i]), nil
 		}
 	}
@@ -77,18 +75,18 @@ func (s *Store) GetProductPrice(name string) (float64, error) {
 }
 
 func (s *Store) Order(name string, count int) error {
-	normalizedName := ToLower(name)
+	name = ToLower(name)
 
 	if count <= 0 {
 		return fmt.Errorf("count should be positive")
 	}
 	for i, n := range s.ProductsNames {
-		if n == normalizedName {
+		if n == name {
 			if s.ProductsCount[i] == 0 {
-				return fmt.Errorf("there is no %s in the store ", normalizedName)
+				return fmt.Errorf("there is no %s in the store ", name)
 			}
 			if count > s.ProductsCount[i] {
-				return fmt.Errorf("not enough %s in the store. there are %s left", normalizedName, s.ProductsCount[i])
+				return fmt.Errorf("not enough %s in the store. there are %d left", name, s.ProductsCount[i])
 			}
 			s.ProductsCount[i] -= count
 			return nil
@@ -102,16 +100,18 @@ func (s *Store) ProductsList() ([]string, error) {
 	if len(s.ProductsNames) == 0 {
 		return nil, fmt.Errorf("store is empty")
 	}
-	if s.SumCount() >= 0 {
-		sliceNames := make([]string, len(s.ProductsNames))
-		for i, n := range s.ProductsNames {
-			if s.ProductsCount[i] > 0 {
-				sliceNames = append(sliceNames, ToLower(n))
-			}
-		}
-		sort.Strings(sliceNames)
-		return sliceNames, nil
 
+	var sliceNames []string
+	for i, n := range s.ProductsNames {
+		if s.ProductsCount[i] > 0 {
+			sliceNames = append(sliceNames, n)
+		}
 	}
-	return nil, nil
+
+	if len(sliceNames) == 0 {
+		return nil, fmt.Errorf("store is empty")
+	}
+
+	sort.Strings(sliceNames)
+	return sliceNames, nil
 }
