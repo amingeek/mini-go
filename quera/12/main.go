@@ -48,13 +48,12 @@ func NewGame(mapIds []int) (*Game, error) {
 		m := &Map{
 			players: make(map[string]bool),
 			chanel:  make(chan string, 100),
-			game:    game, // تنظیم ارجاع به بازی
+			game:    game, 
 		}
 
 		game.maps[id] = m
 	}
 
-	// بعد از ساخت کامل بازی، FanOutMessages را برای هر نقشه اجرا کن
 	for _, m := range game.maps {
 		go m.FanOutMessages()
 	}

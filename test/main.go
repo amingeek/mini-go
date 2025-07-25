@@ -2,27 +2,14 @@ package main
 
 import (
 	"fmt"
-	"sync"
-	"time"
+	"sort"
 )
 
-func say(text string, wg *sync.WaitGroup) {
-	if wg != nil {
-		defer wg.Done()
-	}
-	for i := 0; i < 3; i++ {
-		fmt.Println(text)
-		time.Sleep(time.Millisecond * 500)
-	}
-}
-
 func main() {
-	var wg sync.WaitGroup
+	names := []string{"zahra", "ali", "reza", "mohammad"}
 
-	wg.Add(1)
-	go say("سلام از goroutine", &wg)
-
-	say("سلام از main", nil)
-
-	wg.Wait()
+	// مرتب‌سازی حساس به بزرگی/کوچکی حروف
+	sort.Strings(names)
+	fmt.Println("Sorted (case-sensitive):", names)
+	// خروجی: [Reza Zahra ali mohammad]
 }
