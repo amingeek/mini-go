@@ -3,68 +3,100 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
 
-func GetList(r io.Reader) []string {
-	scanner := bufio.NewScanner(r)
-	scanner.Scan()
-	words := strings.Fields(scanner.Text())
+func ParseLine(line string) []string {
+	words := strings.Fields(line)
+	if len(words) == 0 {
+		return []string{}
+	}
 	return words[1:]
 }
 
-func GetSeason(r io.Reader) string {
-	scanner := bufio.NewScanner(r)
+func main() {
+	scanner := bufio.NewScanner(os.Stdin)
+
 	scanner.Scan()
-	words := strings.Fields(scanner.Text())
-	return words[0]
+	coat := ParseLine(scanner.Text())
+
+	scanner.Scan()
+	shirt := ParseLine(scanner.Text())
+
+	scanner.Scan()
+	pants := ParseLine(scanner.Text())
+
+	scanner.Scan()
+	caps := ParseLine(scanner.Text())
+
+	scanner.Scan()
+	jacket := ParseLine(scanner.Text())
+
+	scanner.Scan()
+	seasonLine := strings.Fields(scanner.Text())
+	season := ""
+	if len(seasonLine) > 0 {
+		season = seasonLine[0]
+	}
+
+	PrintList(coat, shirt, pants, caps, jacket, season)
 }
 
-func PrintList(shirt []string, pants []string, jacket []string, coat []string, caps []string, season string) {
-	for _, i := range shirt {
-		for _, j := range pants {
-			if season == "SUMMER" || season == "SPRING" || season == "FALL" {
-				for _, k := range caps {
-					fmt.Printf("SHIRT: %s PANTS: %s CAP: %s\n", i, j, k)
+func PrintList(coat []string, shirt []string, pants []string, caps []string, jacket []string, season string) {
+	for _, s := range shirt {
+		for _, p := range pants {
+			switch season {
+			case "SUMMER":
+				for _, c := range caps {
+					fmt.Printf("SHIRT: %s PANTS: %s CAP: %s\n", s, p, c)
 				}
-			}
-			if season == "SPRING" || season == "FALL" || season == "WINTER" {
-				for _, k := range caps {
-
-					for _, x := range coat {
-						if season == "FALL" && x == "yellow" || season == "FALL" && x == "orange" {
-							continue
+			case "SPRING", "FALL":
+				for _, s := range shirt {
+					for _, p := range pants {
+						// کت‌های مجاز برای FALL بدون زرد و نارنجی
+						allowedCoats := coat
+						if season == "FALL" {
+							allowedCoats = []string{}
+							for _, co := range coat {
+								if co != "yellow" && co != "orange" {
+									allowedCoats = append(allowedCoats, co)
+								}
+							}
 						}
-						fmt.Printf("COAT: %s SHIRT: %s PANTS: %s CAP: %s\n", x, i, j, k)
-					}
 
-				}
-				if season == "WINTER" {
-					for _, x := range jacket {
-						fmt.Printf("SHIRT: %s PANTS: %s JACKET: %s\n", i, j, x)
+						// حالت 1: بدون کت و با کلاه
+						for _, c := range caps {
+							fmt.Printf("SHIRT: %s PANTS: %s CAP: %s\n", s, p, c)
+						}
+
+						// حالت 2: بدون کت و بدون کلاه
+						fmt.Printf("SHIRT: %s PANTS: %s\n", s, p)
+
+						// حالت 3: با کت و بدون کلاه
+						for _, co := range allowedCoats {
+							fmt.Printf("COAT: %s SHIRT: %s PANTS: %s\n", co, s, p)
+						}
+
+						// حالت 4: با کت و کلاه (اگر قانون اجازه می‌دهد)
+						// اگر در مسئله نیامده که کت و کلاه نباید همزمان باشند،
+						// این حالت را هم اضافه کنیم:
+						for _, co := range allowedCoats {
+							for _, c := range caps {
+								fmt.Printf("COAT: %s SHIRT: %s PANTS: %s CAP: %s\n", co, s, p, c)
+							}
+						}
 					}
 				}
-				for _, x := range coat {
-					fmt.Printf("COAT: %s SHIRT: %s PANTS: %s\n", x, i, j)
+
+			case "WINTER":
+				for _, j := range jacket {
+					fmt.Printf("SHIRT: %s PANTS: %s JACKET: %s\n", s, p, j)
 				}
-				if season != "WINTER" {
-					fmt.Printf("SHIRT: %s PANTS: %s\n", i, j)
+				for _, co := range coat {
+					fmt.Printf("COAT: %s SHIRT: %s PANTS: %s\n", co, s, p)
 				}
 			}
-
 		}
 	}
-}
-
-func main() {
-	coat := GetList(os.Stdin)
-	shirt := GetList(os.Stdin)
-	pants := GetList(os.Stdin)
-	caps := GetList(os.Stdin)
-	jacket := GetList(os.Stdin)
-	season := GetSeason(os.Stdin)
-
-	PrintList(shirt, pants, jacket, coat, caps, season)
 }
