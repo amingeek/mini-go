@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/otiai10/copy"
 )
@@ -31,9 +32,7 @@ func (wd *WorkDir) Root() string {
 
 func (wd *WorkDir) CreateFile(path string) error {
 	fullPath := filepath.Join(wd.root, path)
-	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-		return err
-	}
+	os.MkdirAll(filepath.Dir(fullPath), 0755)
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return err
@@ -48,8 +47,8 @@ func (wd *WorkDir) CreateDir(path string) error {
 
 func (wd *WorkDir) WriteToFile(path string, content string) error {
 	fullPath := filepath.Join(wd.root, path)
-	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-		return err
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return fmt.Errorf("file does not exist")
 	}
 	return os.WriteFile(fullPath, []byte(content), 0644)
 }
@@ -80,17 +79,7 @@ func (wd *WorkDir) DeleteFile(path string) error {
 }
 
 func (wd *WorkDir) ListFilesRoot() []string {
-	entries, err := os.ReadDir(wd.root)
-	if err != nil {
-		return nil
-	}
-	var files []string
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			files = append(files, entry.Name())
-		}
-	}
-	return files
+	return wd.ListFilesRec()
 }
 
 func (wd *WorkDir) ListFilesRec() []string {
@@ -104,6 +93,9 @@ func (wd *WorkDir) ListFilesRec() []string {
 			if err != nil {
 				return err
 			}
+			if strings.HasPrefix(rel, ".vc/") || strings.HasPrefix(rel, ".vc\\") {
+				return nil
+			}
 			files = append(files, rel)
 		}
 		return nil
@@ -112,10 +104,9 @@ func (wd *WorkDir) ListFilesRec() []string {
 }
 
 func (wd *WorkDir) ListFilesIn(dir string) ([]string, error) {
-	fullPath := filepath.Join(wd.root, dir)
+	full := filepath.Join(wd.root, dir)
 	var files []string
-
-	err := filepath.WalkDir(fullPath, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(full, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -128,7 +119,6 @@ func (wd *WorkDir) ListFilesIn(dir string) ([]string, error) {
 		}
 		return nil
 	})
-
 	return files, err
 }
 
@@ -143,12 +133,13 @@ func (wd *WorkDir) CopyFile(src, dst string) error {
 }
 
 func (wd *WorkDir) Clone() *WorkDir {
-	tempDir, err := os.MkdirTemp("", "workdir_clone")
+	temp, err := os.MkdirTemp("", "workdir_clone")
 	if err != nil {
-		panic(fmt.Sprintf("failed to create temp dir for clone: %v", err))
+		panic(err)
 	}
-	if err := copy.Copy(wd.root, tempDir); err != nil {
-		panic(fmt.Sprintf("failed to copy content to clone: %v", err))
+	err = copy.Copy(wd.root, temp)
+	if err != nil {
+		panic(err)
 	}
-	return &WorkDir{root: tempDir}
+	return &WorkDir{root: temp}
 }
