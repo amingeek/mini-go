@@ -1,61 +1,60 @@
+// workdir/workdir.go
 package workdir
 
 import (
-	"fmt"
+	"errors"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
-
-	"github.com/otiai10/copy"
 )
 
 type WorkDir struct {
 	root string
 }
 
-func NewWorkDir(root string) *WorkDir {
-	return &WorkDir{root: root}
-}
-
 func InitEmptyWorkDir() *WorkDir {
-	dir, err := os.MkdirTemp("", "workdir")
+	dir, err := ioutil.TempDir("", "workdir")
 	if err != nil {
 		panic(err)
 	}
 	return &WorkDir{root: dir}
 }
 
-func (wd *WorkDir) Root() string {
-	return wd.root
+func (wd *WorkDir) resolve(path string) string {
+	return filepath.Join(wd.root, filepath.FromSlash(path))
 }
 
 func (wd *WorkDir) CreateFile(path string) error {
-	fullPath := filepath.Join(wd.root, path)
-	os.MkdirAll(filepath.Dir(fullPath), 0755)
-	file, err := os.Create(fullPath)
+	full := wd.resolve(path)
+	if err := os.MkdirAll(filepath.Dir(full), 0755); err != nil {
+		return err
+	}
+	f, err := os.Create(full)
 	if err != nil {
 		return err
 	}
-	return file.Close()
+	return f.Close()
 }
 
 func (wd *WorkDir) CreateDir(path string) error {
-	fullPath := filepath.Join(wd.root, path)
-	return os.MkdirAll(fullPath, 0755)
+	return os.MkdirAll(wd.resolve(path), 0755)
 }
 
-func (wd *WorkDir) WriteToFile(path string, content string) error {
-	fullPath := filepath.Join(wd.root, path)
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return fmt.Errorf("file does not exist")
+func (wd *WorkDir) WriteToFile(path, content string) error {
+	full := wd.resolve(path)
+	if _, err := os.Stat(full); errors.Is(err, os.ErrNotExist) {
+		return errors.New("file does not exist")
 	}
-	return os.WriteFile(fullPath, []byte(content), 0644)
+	return ioutil.WriteFile(full, []byte(content), 0644)
 }
 
-func (wd *WorkDir) AppendToFile(path string, content string) error {
-	fullPath := filepath.Join(wd.root, path)
-	f, err := os.OpenFile(fullPath, os.O_APPEND|os.O_WRONLY, 0644)
+func (wd *WorkDir) AppendToFile(path, content string) error {
+	full := wd.resolve(path)
+	if _, err := os.Stat(full); errors.Is(err, os.ErrNotExist) {
+		return errors.New("file does not exist")
+	}
+	f, err := os.OpenFile(full, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -64,82 +63,85 @@ func (wd *WorkDir) AppendToFile(path string, content string) error {
 	return err
 }
 
-func (wd *WorkDir) ReadFile(path string) (string, error) {
-	fullPath := filepath.Join(wd.root, path)
-	data, err := os.ReadFile(fullPath)
+func (wd *WorkDir) CatFile(path string) (string, error) {
+	full := wd.resolve(path)
+	data, err := ioutil.ReadFile(full)
 	if err != nil {
 		return "", err
 	}
 	return string(data), nil
 }
 
-func (wd *WorkDir) DeleteFile(path string) error {
-	fullPath := filepath.Join(wd.root, path)
-	return os.RemoveAll(fullPath)
-}
-
 func (wd *WorkDir) ListFilesRoot() []string {
-	return wd.ListFilesRec()
-}
-
-func (wd *WorkDir) ListFilesRec() []string {
 	var files []string
-	filepath.WalkDir(wd.root, func(path string, d fs.DirEntry, err error) error {
+	filepath.Walk(wd.root, func(p string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() {
-			rel, err := filepath.Rel(wd.root, path)
-			if err != nil {
-				return err
-			}
-			if strings.HasPrefix(rel, ".vc/") || strings.HasPrefix(rel, ".vc\\") {
-				return nil
-			}
-			files = append(files, rel)
+		if info.IsDir() {
+			return nil
 		}
+		r, err := filepath.Rel(wd.root, p)
+		if err != nil {
+			return err
+		}
+		files = append(files, filepath.ToSlash(r))
 		return nil
 	})
 	return files
 }
 
 func (wd *WorkDir) ListFilesIn(dir string) ([]string, error) {
-	full := filepath.Join(wd.root, dir)
 	var files []string
-	err := filepath.WalkDir(full, func(path string, d fs.DirEntry, err error) error {
+	full := wd.resolve(dir)
+	err := filepath.Walk(full, func(p string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() {
-			rel, err := filepath.Rel(wd.root, path)
-			if err != nil {
-				return err
-			}
-			files = append(files, rel)
+		if info.IsDir() {
+			return nil
 		}
+		r, err := filepath.Rel(wd.root, p)
+		if err != nil {
+			return err
+		}
+		files = append(files, filepath.ToSlash(r))
 		return nil
 	})
-	return files, err
-}
-
-func (wd *WorkDir) CatFile(path string) (string, error) {
-	return wd.ReadFile(path)
-}
-
-func (wd *WorkDir) CopyFile(src, dst string) error {
-	srcPath := filepath.Join(wd.root, src)
-	dstPath := filepath.Join(wd.root, dst)
-	return copy.Copy(srcPath, dstPath)
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
 }
 
 func (wd *WorkDir) Clone() *WorkDir {
-	temp, err := os.MkdirTemp("", "workdir_clone")
+	newWD := InitEmptyWorkDir()
+	copyDir(wd.root, newWD.root)
+	return newWD
+}
+
+func copyDir(src, dst string) error {
+	entries, err := ioutil.ReadDir(src)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	err = copy.Copy(wd.root, temp)
-	if err != nil {
-		panic(err)
+	for _, e := range entries {
+		srcPath := filepath.Join(src, e.Name())
+		dstPath := filepath.Join(dst, e.Name())
+		if e.IsDir() {
+			if err := os.MkdirAll(dstPath, 0755); err != nil {
+				return err
+			}
+			copyDir(srcPath, dstPath)
+		} else {
+			data, err := ioutil.ReadFile(srcPath)
+			if err != nil {
+				return err
+			}
+			if err := ioutil.WriteFile(dstPath, data, 0644); err != nil {
+				return err
+			}
+		}
 	}
-	return &WorkDir{root: temp}
+	return nil
 }

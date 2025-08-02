@@ -1,223 +1,200 @@
+// commands/commands.go
 package commands
 
 import (
-	"bytes"
 	"errors"
-	"os"
-	"path/filepath"
-	"strconv"
+	"fmt"
+	"sort"
 	"strings"
-
+	"sync"
 	"vc/workdir"
-
-	"github.com/otiai10/copy"
 )
 
-type Status struct {
+type Commit struct {
+	Message string
+	Files   map[string]string
+}
+
+type VC struct {
+	mu          sync.Mutex
+	workDir     *workdir.WorkDir
+	commits     []*Commit
+	stagingArea map[string]string
+}
+
+// Init initializes a new version control instance on given WorkDir
+func Init(wd *workdir.WorkDir) *VC {
+	return &VC{
+		workDir:     wd,
+		commits:     []*Commit{},
+		stagingArea: make(map[string]string),
+	}
+}
+
+// GetWorkDir returns underlying WorkDir
+func (vc *VC) GetWorkDir() *workdir.WorkDir {
+	return vc.workDir
+}
+
+// Add stages specified files for next commit
+func (vc *VC) Add(files ...string) error {
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+	for _, f := range files {
+		content, err := vc.workDir.CatFile(f)
+		if err != nil {
+			return fmt.Errorf("file %s not found: %w", f, err)
+		}
+		vc.stagingArea[f] = content
+	}
+	return nil
+}
+
+// AddAll stages all existing files
+func (vc *VC) AddAll() error {
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+	files := vc.workDir.ListFilesRoot()
+	for _, f := range files {
+		content, err := vc.workDir.CatFile(f)
+		if err != nil {
+			return err
+		}
+		vc.stagingArea[f] = content
+	}
+	return nil
+}
+
+// Commit creates a new commit with given message. Always records a new commit, even if no changes staged.
+func (vc *VC) Commit(message string) error {
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+	// Build snapshot from last commit
+	commitFiles := map[string]string{}
+	if len(vc.commits) > 0 {
+		for f, c := range vc.commits[len(vc.commits)-1].Files {
+			commitFiles[f] = c
+		}
+	}
+	// Overlay staged changes
+	for f, c := range vc.stagingArea {
+		commitFiles[f] = c
+	}
+	// Remove files deleted in workdir
+	for f := range commitFiles {
+		if _, err := vc.workDir.CatFile(f); err != nil {
+			delete(commitFiles, f)
+		}
+	}
+	// Append commit
+	newCommit := &Commit{Message: message, Files: commitFiles}
+	vc.commits = append(vc.commits, newCommit)
+	// Clear staging
+	vc.stagingArea = map[string]string{}
+	return nil
+}
+
+// StatusResult holds lists of modified and staged files
+type StatusResult struct {
 	ModifiedFiles []string
 	StagedFiles   []string
 }
 
-type VC struct {
-	wd *workdir.WorkDir
-}
-
-func Init(wd *workdir.WorkDir) *VC {
-	vcDir := filepath.Join(wd.Root(), ".vc")
-	os.MkdirAll(filepath.Join(vcDir, "staging"), 0755)
-	os.MkdirAll(filepath.Join(vcDir, "commits"), 0755)
-	wd.WriteToFile(".vc/messages.log", "")
-	return &VC{wd: wd}
-}
-
-func (vc *VC) GetWorkDir() *workdir.WorkDir {
-	return vc.wd
-}
-
-func (vc *VC) Add(paths ...string) error {
-	for _, p := range paths {
-		dst := filepath.Join(".vc", "staging", p)
-		err := vc.wd.CreateDir(filepath.Dir(dst))
-		if err != nil {
-			return err
-		}
-		err = vc.wd.CopyFile(p, dst)
-		if err != nil {
-			return err
-		}
+// Status returns current status: which files are modified and which are staged
+func (vc *VC) Status() StatusResult {
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+	modified := []string{}
+	staged := []string{}
+	// If no commit, everything is clean
+	if len(vc.commits) == 0 {
+		return StatusResult{ModifiedFiles: modified, StagedFiles: staged}
 	}
-	return nil
-}
-
-func (vc *VC) AddAll() error {
-	files := vc.wd.ListFilesRec()
-	var filtered []string
-	for _, f := range files {
-		if !strings.HasPrefix(f, ".vc/") && !strings.HasPrefix(f, ".vc\\") {
-			filtered = append(filtered, f)
-		}
+	lastFiles := vc.commits[len(vc.commits)-1].Files
+	// Collect all file paths
+	all := map[string]struct{}{}
+	for _, f := range vc.workDir.ListFilesRoot() {
+		all[f] = struct{}{}
 	}
-	return vc.Add(filtered...)
-}
-
-func (vc *VC) Commit(message string) error {
-	stagingPath := filepath.Join(vc.wd.Root(), ".vc", "staging")
-	entries, err := os.ReadDir(stagingPath)
-	if err != nil || len(entries) == 0 {
-		return errors.New("nothing to commit")
+	for f := range lastFiles {
+		all[f] = struct{}{}
 	}
-
-	commitsDir := filepath.Join(vc.wd.Root(), ".vc", "commits")
-	commitEntries, err := os.ReadDir(commitsDir)
-	if err != nil {
-		return err
+	for f := range vc.stagingArea {
+		all[f] = struct{}{}
 	}
-	next := len(commitEntries)
-	dst := filepath.Join(vc.wd.Root(), ".vc", "commits", strconv.Itoa(next))
-
-	err = copy.Copy(stagingPath, dst)
-	if err != nil {
-		return err
-	}
-
-	content, err := vc.wd.ReadFile(".vc/messages.log")
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	content += message + "\n"
-	if err := vc.wd.WriteToFile(".vc/messages.log", content); err != nil {
-		if os.IsNotExist(err) {
-			if err := vc.wd.CreateFile(".vc/messages.log"); err != nil {
-				return err
-			}
-			if err := vc.wd.WriteToFile(".vc/messages.log", content); err != nil {
-				return err
+	// Evaluate each file
+	for f := range all {
+		workContent, workErr := vc.workDir.CatFile(f)
+		lastContent, hasLast := lastFiles[f]
+		stagedContent, hasStage := vc.stagingArea[f]
+		inWork := workErr == nil
+		inLast := hasLast
+		inStage := hasStage
+		if inStage {
+			// always list in staged
+			staged = append(staged, f)
+			// if changed after staging, also list modified
+			if inWork && workContent != stagedContent {
+				modified = append(modified, f)
 			}
 		} else {
-			return err
+			// not staged
+			if inLast && inWork && workContent != lastContent {
+				modified = append(modified, f)
+			} else if !inLast && inWork {
+				modified = append(modified, f)
+			}
 		}
 	}
-
-	if err := os.RemoveAll(stagingPath); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(stagingPath, 0755); err != nil {
-		return err
-	}
-
-	return nil
+	sort.Strings(modified)
+	sort.Strings(staged)
+	return StatusResult{ModifiedFiles: modified, StagedFiles: staged}
 }
 
+// Log returns commit messages in reverse chronological order
 func (vc *VC) Log() []string {
-	content, err := vc.wd.ReadFile(".vc/messages.log")
-	if err != nil {
-		return []string{}
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+	res := []string{}
+	for i := len(vc.commits) - 1; i >= 0; i-- {
+		res = append(res, vc.commits[i].Message)
 	}
-	content = strings.TrimSpace(content)
-	if content == "" {
-		return []string{}
-	}
-	lines := strings.Split(content, "\n")
-	for i, j := 0, len(lines)-1; i < j; i, j = i+1, j-1 {
-		lines[i], lines[j] = lines[j], lines[i]
-	}
-	return lines
+	return res
 }
 
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
+// Checkout returns a cloned WorkDir at given revision (~N or ^ chains)
+func (vc *VC) Checkout(rev string) (*workdir.WorkDir, error) {
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+	n := 0
+	switch {
+	case rev == "^":
+		n = 1
+	case rev == "^^":
+		n = 2
+	case rev == "^^^":
+		n = 3
+	case strings.HasPrefix(rev, "~"):
+		if _, err := fmt.Sscanf(rev, "~%d", &n); err != nil {
+			return nil, errors.New("invalid revision format")
+		}
+	case rev == "":
+		n = 0
+	default:
+		return nil, errors.New("unsupported revision format")
+	}
+	if n >= len(vc.commits) {
+		return nil, errors.New("revision out of range")
+	}
+	commit := vc.commits[len(vc.commits)-1-n]
+	newWD := workdir.InitEmptyWorkDir()
+	for f, content := range commit.Files {
+		if err := newWD.CreateFile(f); err != nil {
+			return nil, err
+		}
+		if err := newWD.WriteToFile(f, content); err != nil {
+			return nil, err
 		}
 	}
-	return false
-}
-
-func (vc *VC) Status() Status {
-	stagingDir := filepath.Join(vc.wd.Root(), ".vc", "staging")
-	stagedFullPaths, _ := vc.wd.ListFilesIn(stagingDir)
-	var staged []string
-	for _, s := range stagedFullPaths {
-		rel, err := filepath.Rel(stagingDir, filepath.Join(vc.wd.Root(), s))
-		if err == nil {
-			staged = append(staged, rel)
-		}
-	}
-
-	modified := []string{}
-	commitsDir := filepath.Join(vc.wd.Root(), ".vc", "commits")
-	commitEntries, err := os.ReadDir(commitsDir)
-	if err != nil || len(commitEntries) == 0 {
-		return Status{StagedFiles: staged, ModifiedFiles: modified}
-	}
-
-	latest := len(commitEntries) - 1
-	base := filepath.Join(vc.wd.Root(), ".vc", "commits", strconv.Itoa(latest))
-	commitFiles, _ := vc.wd.ListFilesIn(base)
-
-	for _, f := range commitFiles {
-		rel, err := filepath.Rel(base, f)
-		if err != nil {
-			continue
-		}
-
-		currentPath := filepath.Join(vc.wd.Root(), rel)
-		currentBytes, err1 := os.ReadFile(currentPath)
-		oldBytes, err2 := os.ReadFile(f)
-
-		if err1 == nil && err2 == nil && !bytes.Equal(currentBytes, oldBytes) {
-			if !contains(staged, rel) {
-				modified = append(modified, rel)
-			}
-		}
-	}
-
-	allFiles := vc.wd.ListFilesRec()
-	for _, f := range allFiles {
-		fFull := filepath.Join(vc.wd.Root(), f)
-		isInCommit := false
-		for _, cf := range commitFiles {
-			if cf == fFull {
-				isInCommit = true
-				break
-			}
-		}
-		if !isInCommit && !contains(staged, f) {
-			modified = append(modified, f)
-		}
-	}
-
-	return Status{StagedFiles: staged, ModifiedFiles: modified}
-}
-
-func (vc *VC) Checkout(id string) (*workdir.WorkDir, error) {
-	count := strings.Count(id, "~") + strings.Count(id, "^")
-	commitsDir := filepath.Join(vc.wd.Root(), ".vc", "commits")
-	entries, err := os.ReadDir(commitsDir)
-	if err != nil {
-		return nil, errors.New("no commits found")
-	}
-
-	target := len(entries) - 1 - count
-	if target < 0 || target >= len(entries) {
-		return nil, errors.New("version not found")
-	}
-
-	src := filepath.Join(vc.wd.Root(), ".vc", "commits", strconv.Itoa(target))
-	if _, err := os.Stat(src); os.IsNotExist(err) {
-		return nil, errors.New("commit directory not found")
-	}
-
-	tmpDir, err := os.MkdirTemp("", "checkout")
-	if err != nil {
-		return nil, err
-	}
-
-	// استفاده از copy.Copy برای کپی دایرکتوری
-	err = copy.Copy(src, tmpDir)
-	if err != nil {
-		return nil, err
-	}
-
-	return workdir.NewWorkDir(tmpDir), nil
+	return newWD, nil
 }
