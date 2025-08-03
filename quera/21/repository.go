@@ -11,10 +11,9 @@ type Database interface {
 	SaveTask(t Task) error
 	DelTask(name string) error
 }
-
 type memoryDB struct {
-	data map[string]Task
 	mu   sync.RWMutex
+	data map[string]Task
 }
 
 func NewDatabase() Database {
@@ -22,16 +21,14 @@ func NewDatabase() Database {
 		data: make(map[string]Task),
 	}
 }
-
 func (db *memoryDB) GetTaskList() []Task {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
-	tasks := make([]Task, 0, len(db.data))
+	list := make([]Task, 0, len(db.data))
 	for _, t := range db.data {
-		tasks = append(tasks, t)
+		list = append(list, t)
 	}
-	// optionally sort tasks here
-	return tasks
+	return list
 }
 
 func (db *memoryDB) GetTask(name string) (Task, error) {

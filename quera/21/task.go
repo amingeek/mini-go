@@ -12,7 +12,6 @@ type Task interface {
 	GetName() string
 	GetDescription() string
 }
-
 type basicTask struct {
 	name        string
 	description string
