@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
-type Response struct {
-	Message string `json:"message"`
-	Status  string `json:"status"`
+type APIResponse struct {
+	Data    interface{} `json:"data"`
+	Message string      `json:"message"`
+	Status  string      `json:"status"`
 }
 
 type product struct {
@@ -49,28 +51,54 @@ func getProducts() []product {
 	}
 	return products
 }
+
 func search(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	params := r.URL.Query()
 	name := params.Get("name")
 	products := getProducts()
 	res := []product{}
 
+	if len(name) == 0 {
+		// ❌ پارامتر خالی
+		jsonRes, _ := json.Marshal(APIResponse{
+			Data:    nil,
+			Message: "Bad Request: 'name' parameter is required",
+			Status:  "error",
+		})
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(jsonRes)
+		return
+	}
+
+	// 🔍 جستجو (منعطف)
 	for _, p := range products {
-		if p.Name == name {
+		if strings.Contains(strings.ToLower(p.Name), strings.ToLower(name)) {
 			res = append(res, p)
 		}
 	}
 
-	jsonRes, _ := json.Marshal(Response{})
 	if len(res) == 0 {
-		jsonRes, _ = json.Marshal(Response{Message: "no product found", Status: "ok"})
-	} else {
-		jsonRes, _ = json.Marshal(res)
+		// ❌ محصولی پیدا نشد
+		jsonRes, _ := json.Marshal(APIResponse{
+			Data:    nil,
+			Message: "No product found",
+			Status:  "ok",
+		})
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonRes)
+		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+
+	// ✅ موفقیت
+	jsonRes, _ := json.Marshal(APIResponse{
+		Data:    res,
+		Message: "Products found",
+		Status:  "ok",
+	})
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonRes)
-
 }
 
 func main() {
