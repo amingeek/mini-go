@@ -55,7 +55,6 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, resultErr{"", "title or author cannot be empty"})
 			return
 		}
-		// طبق تست‌ها و مشخصات باید title/author را lowercase ذخیره و برگردان کنیم
 		title := strings.ToLower(strings.TrimSpace(r.FormValue("title")))
 		author := strings.ToLower(strings.TrimSpace(r.FormValue("author")))
 		if title == "" || author == "" {
@@ -68,11 +67,9 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
 		if _, exists := s.books[k]; exists {
 			s.mu.Unlock()
-			// اگر قبلاً وجود داشته باشد، پیام مورد نظر (200) بازگردانده می‌شود
 			writeJSON(w, http.StatusOK, resultErr{"this book is already in the library", ""})
 			return
 		}
-		// ذخیره کتاب با title/author در حالت lowercase (مطابق تست)
 		s.books[k] = &Book{Title: title, Author: author, Borrowed: false}
 		s.mu.Unlock()
 
@@ -80,7 +77,6 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case http.MethodGet:
-		// title و author از query گرفته می‌شوند
 		title := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("title")))
 		author := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("author")))
 		if title == "" || author == "" {
@@ -100,7 +96,6 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, resultErr{"", "this book is borrowed"})
 			return
 		}
-		// پاسخ موفق برای GET فقط title و author (مطابق تست)
 		writeJSON(w, http.StatusOK, map[string]string{"title": book.Title, "author": book.Author})
 		return
 
@@ -126,7 +121,6 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case http.MethodPut:
-		// PUT: کوئری title/author و body JSON با { "borrow": bool }
 		title := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("title")))
 		author := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("author")))
 		if title == "" || author == "" {
@@ -152,7 +146,6 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if *body.Borrow {
-			// قرض گرفتن
 			if book.Borrowed {
 				s.mu.Unlock()
 				writeJSON(w, http.StatusBadRequest, resultErr{"", "this book is already borrowed"})
@@ -163,7 +156,6 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, resultErr{"you have borrowed this book successfully", ""})
 			return
 		} else {
-			// برگرداندن
 			if !book.Borrowed {
 				s.mu.Unlock()
 				writeJSON(w, http.StatusBadRequest, resultErr{"", "this book is already in the library"})
@@ -176,7 +168,6 @@ func (s *Server) bookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	default:
-		// متد پشتیبانی نشده
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
