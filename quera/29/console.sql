@@ -28,7 +28,6 @@ CREATE TABLE events (
 CREATE TABLE event_user (
     user_id BIGINT UNSIGNED,
     event_id BIGINT UNSIGNED,
-    PRIMARY KEY (user_id, event_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (event_id) REFERENCES events(id)
 );
