@@ -29,5 +29,10 @@ func initDB() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
+	err = db.AutoMigrate(&Product{})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("🆗 Database migrated and connected successfully")
 	return db
 }
