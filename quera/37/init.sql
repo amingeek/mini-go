@@ -3,7 +3,7 @@ SET category = "mobile"
 WHERE id = 4;
 
 delete from products
-where id = 7;
+where id = 9;
 
 
 select name, color, price from products

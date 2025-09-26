@@ -27,20 +27,25 @@ func createProduct(c echo.Context) error {
 		return err
 	}
 
-	if product.Name == "" {
-		return c.JSON(http.StatusBadRequest, "name is required")
+	validations := map[string]bool{
+		"name is required":         product.Name == "",
+		"price is required":        product.Price == 0,
+		"color is required":        product.Color == "",
+		"category is required":     product.Category == "",
+		"created_date is required": product.CreatedDate.IsZero(),
 	}
-	if product.Price == 0 {
-		return c.JSON(http.StatusBadRequest, "price is required")
+
+	for msg, failed := range validations {
+		if failed {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": msg})
+		}
 	}
-	if product.Color == "" {
-		return c.JSON(http.StatusBadRequest, "color is required")
-	}
-	if product.Category == "" {
-		return c.JSON(http.StatusBadRequest, "category is required")
-	}
-	if product.CreatedDate.IsZero() {
-		return c.JSON(http.StatusBadRequest, "created_date is required")
+
+	var existing Product
+	if err := db.Where("name = ?", product.Name).First(&existing).Error; err == nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "product with this name already exists",
+		})
 	}
 
 	if err := db.Create(&product).Error; err != nil {
@@ -50,10 +55,36 @@ func createProduct(c echo.Context) error {
 	return c.JSON(http.StatusCreated, product)
 }
 
+func getProducts(c echo.Context) error {
+	var products []Product
+	if err := db.Find(&products).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, products)
+}
+func getCategory(c echo.Context) error {
+	var products []Product
+	category := c.Param("category")
+	if category == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "category is required"})
+	}
+	if err := db.Where("category = ?", category).Find(&products).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, products)
+}
+
+//func getProduct(c echo.Context) error {
+//	var product Product
+//	id := c.Param("id")
+//
+//}
+
 func main() {
 	e := echo.New()
 	e.POST("/products", createProduct)
-	//e.GET("/products", getProducts)
+	e.GET("/products", getProducts)
+	e.GET("/products/category/:category", getCategory)
 	//e.GET("/products/:id", getProduct)
 	//e.PUT("/products/:id", updateProduct)
 	//e.DELETE("/products/:id", deleteProduct)
