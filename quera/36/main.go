@@ -131,5 +131,8 @@ func main() {
 	e.GET("/products/:id", getProduct)
 	e.PUT("/products/:id", updateProduct)
 	e.DELETE("/products/:id", deleteProduct)
-	e.Start(":8080")
+	err := e.Start(":8080")
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
 }
