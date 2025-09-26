@@ -10,3 +10,6 @@ select name, color, price from products
 where category = "mobile"
 
 select * from products
+
+delete from products
+where name in ("Laptop Dell", "Test Phone", "Test Laptop")
