@@ -12,4 +12,7 @@ where category = "mobile"
 select * from products
 
 delete from products
-where name in ("Laptop Dell", "Test Phone", "Test Laptop")
+where name in ("Test Laptop Dell", "Test Phone", "Test Laptop", "Test Laptop Category", "Test Watch Delete")
+
+delete from products
+where name in ("Laptop Dell")

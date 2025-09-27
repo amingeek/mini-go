@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,6 +19,12 @@ type Product struct {
 	CreatedDate time.Time `json:"created_date"`
 }
 
+type ApiResponse struct {
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
 var (
 	db = initDB()
 )
@@ -25,7 +32,10 @@ var (
 func createProduct(c echo.Context) error {
 	var product Product
 	if err := c.Bind(&product); err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, ApiResponse{
+			Success: false,
+			Error:   "invalid request body",
+		})
 	}
 
 	validations := map[string]bool{
@@ -35,78 +45,130 @@ func createProduct(c echo.Context) error {
 		"category is required":     product.Category == "",
 		"created_date is required": product.CreatedDate.IsZero(),
 	}
-
 	for msg, failed := range validations {
 		if failed {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": msg})
+			return c.JSON(http.StatusBadRequest, ApiResponse{
+				Success: false,
+				Error:   msg,
+			})
 		}
 	}
 
 	var existing Product
 	if err := db.Where("name = ?", product.Name).First(&existing).Error; err == nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "product with this name already exists",
+		return c.JSON(http.StatusBadRequest, ApiResponse{
+			Success: false,
+			Error:   "product with this name already exists",
+		})
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return c.JSON(http.StatusInternalServerError, ApiResponse{
+			Success: false,
+			Error:   err.Error(),
 		})
 	}
 
 	if err := db.Create(&product).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, ApiResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusCreated, product)
+	return c.JSON(http.StatusCreated, ApiResponse{
+		Success: true,
+		Data:    product,
+	})
 }
 
 func getProducts(c echo.Context) error {
 	var products []Product
 	if err := db.Find(&products).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, ApiResponse{Success: false, Error: err.Error()})
 	}
-	return c.JSON(http.StatusOK, products)
+	return c.JSON(http.StatusOK, ApiResponse{Success: true, Data: products})
 }
+
 func getCategory(c echo.Context) error {
 	var products []Product
 	category := c.Param("category")
 	if category == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "category is required"})
+		return c.JSON(http.StatusBadRequest, ApiResponse{Success: false, Error: "category is required"})
 	}
 	if err := db.Where("category = ?", category).Find(&products).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, ApiResponse{Success: false, Error: err.Error()})
 	}
-	return c.JSON(http.StatusOK, products)
+	return c.JSON(http.StatusOK, ApiResponse{Success: true, Data: products})
 }
 
 func getProduct(c echo.Context) error {
-	var product Product
-	if c.Param("id") == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "id is required"})
-	}
 	id := c.Param("id")
-
-	if err := db.Where("id = ?", id).First(&product).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+	if id == "" {
+		return c.JSON(http.StatusBadRequest, ApiResponse{Success: false, Error: "id is required"})
 	}
-	return c.JSON(http.StatusOK, product)
+
+	var product Product
+	if err := db.Where("id = ?", id).First(&product).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusNotFound, ApiResponse{Success: false, Error: "product not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, ApiResponse{Success: false, Error: err.Error()})
+	}
+	return c.JSON(http.StatusOK, ApiResponse{Success: true, Data: product})
 }
 
 func updateProduct(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid id"})
+		return c.JSON(http.StatusBadRequest, ApiResponse{Success: false, Error: "invalid id"})
 	}
 
 	var product Product
 	if err := db.First(&product, id).Error; err != nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "product not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusNotFound, ApiResponse{Success: false, Error: "product not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, ApiResponse{Success: false, Error: err.Error()})
 	}
 
 	var updateData Product
 	if err := c.Bind(&updateData); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return c.JSON(http.StatusBadRequest, ApiResponse{Success: false, Error: "invalid request body"})
 	}
 
 	if err := db.Model(&product).Updates(updateData).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, ApiResponse{Success: false, Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, product)
+	return c.JSON(http.StatusOK, ApiResponse{Success: true, Data: product})
+}
+
+func deleteProduct(c echo.Context) error {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ApiResponse{Success: false, Error: "invalid id"})
+	}
+
+	var product Product
+	if err := db.Where("id = ?", id).First(&product).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusNotFound, ApiResponse{Success: false, Error: "product not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, ApiResponse{Success: false, Error: err.Error()})
+	}
+
+	if err := db.Delete(&product).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, ApiResponse{Success: false, Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, ApiResponse{Success: true, Data: product})
+}
+
+func deleteProducts(listProducts []uint) error {
+	if listProducts == nil {
+		return nil
+	}
+	if err := db.Where("id IN ?", listProducts).Delete(&Product{}).Error; err != nil {
+		return err
+	}
+	return nil
 }

@@ -11,7 +11,7 @@ func main() {
 	e.GET("/products/category/:category", getCategory)
 	e.GET("/products/:id", getProduct)
 	e.PUT("/products/:id", updateProduct)
-	//e.DELETE("/products/:id", deleteProduct)
+	e.DELETE("/products/:id", deleteProduct)
 	err := e.Start(":8080")
 	if err != nil {
 		panic(err)
