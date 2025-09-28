@@ -13,6 +13,7 @@ import (
 type Product struct {
 	gorm.Model
 	Name        string    `json:"name"`
+	Count       int       `json:"count"`
 	Price       float64   `json:"price"`
 	Color       string    `json:"color"`
 	Category    string    `json:"category"`
@@ -40,6 +41,7 @@ func createProduct(c echo.Context) error {
 
 	validations := map[string]bool{
 		"name is required":         product.Name == "",
+		"count is required":        product.Count == 0,
 		"price is required":        product.Price == 0,
 		"color is required":        product.Color == "",
 		"category is required":     product.Category == "",

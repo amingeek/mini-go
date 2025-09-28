@@ -39,6 +39,7 @@ func TestCreateProduct(t *testing.T) {
 
 	product := Product{
 		Name:        "Test Laptop Dell",
+		Count:       10,
 		Price:       2000,
 		Color:       "Silver",
 		Category:    "Laptop",
@@ -119,6 +120,7 @@ func TestGetProduct(t *testing.T) {
 
 	product := Product{
 		Name:        "Test Phone",
+		Count:       10,
 		Price:       999,
 		Color:       "Blue",
 		Category:    "Mobile",
@@ -153,6 +155,7 @@ func TestDeleteProduct(t *testing.T) {
 
 	product := Product{
 		Name:        "Test Watch Delete",
+		Count:       10,
 		Price:       2000,
 		Color:       "Black",
 		Category:    "Watch",
