@@ -1,0 +1,18 @@
+<html>
+<body>
+<h1>My Favoirte Author</h1>
+<ul>
+    <li>First Name : {{ .author.FirstName }}</li>
+    <li>Last Name : {{ .author.LastName }}</li>
+    <li>Age : {{ .author.Age }}</li>
+</ul>
+<h2>Books</h2>
+<ol>
+    {{ range $book := .books}}
+    <li> {{ $book }}</li>
+    {{ end}}
+</ol>
+<h3>Is Famous  </h3> {{ if .isFamous }} YES {{else}} NO
+{{ end }}
+</body>
+</html>
