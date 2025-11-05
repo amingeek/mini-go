@@ -1,284 +1,150 @@
 package main
 
 import (
-	"fmt"
-	"strings"
+	"errors"
+	"slices"
 	"sync"
-
-	"gorm.io/gorm"
 )
 
-type Survey struct {
-	db *gorm.DB
-	mu sync.RWMutex
-}
-
-type Flight struct {
-	gorm.Model
-	Name     string    `gorm:"type:varchar(255);unique;not null"`
-	Tickets  []Ticket  `gorm:"foreignKey:FlightName;references:Name;constraint:OnDelete:CASCADE"`
-	Comments []Comment `gorm:"foreignKey:FlightName;references:Name;constraint:OnDelete:CASCADE"`
-}
-
 type Ticket struct {
-	gorm.Model
-	FlightName    string `gorm:"type:varchar(255);not null;uniqueIndex:idx_flight_passenger"`
-	PassengerName string `gorm:"type:varchar(255);not null;uniqueIndex:idx_flight_passenger"`
+	Passenger string
+	Flight    string
 }
 
 type Comment struct {
-	gorm.Model
-	FlightName    string `gorm:"type:varchar(255);not null;uniqueIndex:idx_comment_unique"`
-	PassengerName string `gorm:"type:varchar(255);not null;uniqueIndex:idx_comment_unique"`
-	Score         int    `gorm:"not null"`
-	Text          string `gorm:"type:text"`
+	Score int
+	Text  string
+}
+
+type Survey struct {
+	Flights  []string
+	Tickets  []Ticket
+	Comments map[Ticket]Comment
+	mu       sync.Mutex
 }
 
 func NewSurvey() *Survey {
-	db := GetConnection()
+	return &Survey{Flights: make([]string, 0), Tickets: make([]Ticket, 0), Comments: make(map[Ticket]Comment)}
+}
 
-	// Clean up existing data
-	db.Exec("DELETE FROM comments")
-	db.Exec("DELETE FROM tickets")
-	db.Exec("DELETE FROM flights")
-
-	err := db.AutoMigrate(&Flight{}, &Ticket{}, &Comment{})
-	if err != nil {
-		panic(err)
-	}
-
-	return &Survey{
-		db: db,
-		mu: sync.RWMutex{},
+func NewTicket(passengerName, flightName string) *Ticket {
+	return &Ticket{
+		Passenger: passengerName,
+		Flight:    flightName,
 	}
 }
 
-func (s *Survey) CheckFlight(flightName string) (bool, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Survey) FlightCheck(flightName string) bool {
+	return slices.Contains(s.Flights, flightName)
+}
 
-	var existing Flight
-	err := s.db.Where("name = ?", flightName).First(&existing).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
+func (s *Survey) PassengerCheck(passengerName, flightName string) bool {
+	for _, ticket := range s.Tickets {
+		if ticket.Passenger == passengerName && ticket.Flight == flightName {
+			return true
 		}
-		return false, err
 	}
-	return true, nil
+	return false
 }
 
-func (s *Survey) CheckPassenger(flightName, passengerName string) (bool, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var existing Ticket
-	err := s.db.Where("flight_name = ? AND passenger_name = ?", flightName, passengerName).First(&existing).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
+func (s *Survey) CommentCheck(passengerName, flightName string) bool {
+	for ticket, comment := range s.Comments {
+		if ticket.Passenger == passengerName && ticket.Flight == flightName && comment.Score != 0 {
+			return true
 		}
-		return false, err
 	}
-	return true, nil
-}
-
-func (s *Survey) CheckComment(flightName, passengerName string) (bool, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var existing Comment
-	err := s.db.Where("flight_name = ? AND passenger_name = ?", flightName, passengerName).First(&existing).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-func (s *Survey) GetFlightComments(flightName string) ([]Comment, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var comments []Comment
-	res := s.db.Where("flight_name = ?", flightName).Find(&comments)
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	return comments, nil
-}
-
-func AvgScore(c []Comment) int {
-	if len(c) == 0 {
-		return 0
-	}
-	n := 0
-	for i := 0; i < len(c); i++ {
-		n += c[i].Score
-	}
-	return n / len(c)
-}
-
-func isUniqueConstraintError(err error) bool {
-	return strings.Contains(err.Error(), "UNIQUE constraint failed") || strings.Contains(err.Error(), "duplicate key")
+	return false
 }
 
 func (s *Survey) AddFlight(flightName string) error {
-
-	flight := Flight{Name: flightName}
-	if err := s.db.Create(&flight).Error; err != nil {
-		if isUniqueConstraintError(err) {
-			return fmt.Errorf("flight already exists: %s", flightName)
-		}
-		return err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.FlightCheck(flightName) {
+		return errors.New("flight already exists")
 	}
+	s.Flights = append(s.Flights, flightName)
 	return nil
 }
 
 func (s *Survey) AddTicket(flightName, passengerName string) error {
-	var flight Flight
-	if err := s.db.Where("name = ?", flightName).First(&flight).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("flight does not exist: %s", flightName)
-		}
-		return err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.FlightCheck(flightName) {
+		return errors.New("flight does not exist")
 	}
-
-	ticket := Ticket{
-		FlightName:    flightName,
-		PassengerName: passengerName,
+	if s.PassengerCheck(passengerName, flightName) {
+		return errors.New("ticket already exists")
 	}
-	if err := s.db.Create(&ticket).Error; err != nil {
-		if isUniqueConstraintError(err) {
-			return fmt.Errorf("duplicate ticket for %s %s", flightName, passengerName)
-		}
-		return err
-	}
+	s.Tickets = append(s.Tickets, *NewTicket(passengerName, flightName))
 	return nil
 }
 
 func (s *Survey) AddComment(flightName, passengerName string, comment Comment) error {
-
-	var flight Flight
-	if err := s.db.Where("name = ?", flightName).First(&flight).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("flight does not exist: %s", flightName)
-		}
-		return err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if comment.Score <= 0 || comment.Score > 10 {
+		return errors.New("invalid score")
 	}
-
-	var ticket Ticket
-	if err := s.db.Where("flight_name = ? AND passenger_name = ?", flightName, passengerName).First(&ticket).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("invalid passenger for %s %s", flightName, passengerName)
-		}
-		return err
+	if !s.FlightCheck(flightName) {
+		return errors.New("flight does not exist")
 	}
-
-	newComment := Comment{
-		FlightName:    flightName,
-		PassengerName: passengerName,
-		Score:         comment.Score,
-		Text:          comment.Text,
+	if !s.PassengerCheck(passengerName, flightName) {
+		return errors.New("ticket does not exist")
 	}
-	if err := s.db.Create(&newComment).Error; err != nil {
-		if isUniqueConstraintError(err) {
-			return fmt.Errorf("duplicate comment for %s %s", flightName, passengerName)
-		}
-		return err
+	if s.CommentCheck(passengerName, flightName) {
+		return errors.New("duplicate comment")
 	}
+	ticket := NewTicket(passengerName, flightName)
+	s.Comments[*ticket] = comment
 	return nil
 }
+
 func (s *Survey) GetCommentsAverage(flightName string) (float64, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	// Check if flight exists
-	var flight Flight
-	if err := s.db.Where("name = ?", flightName).First(&flight).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return 0, fmt.Errorf("flight does not exist: %s", flightName)
+	if s.FlightCheck(flightName) {
+		rate := 0
+		count := 0
+		for key, val := range s.Comments {
+			if key.Flight == flightName {
+				rate += val.Score
+				count++
+			}
 		}
-		return 0, err
+		if count > 0 {
+			return float64(rate) / float64(count), nil
+		}
 	}
-
-	// Get comments
-	var comments []Comment
-	if err := s.db.Where("flight_name = ?", flightName).Find(&comments).Error; err != nil {
-		return 0, err
-	}
-
-	return float64(AvgScore(comments)), nil
+	return 0, errors.New("flight not exists or no comment submitted for flight")
 }
 
 func (s *Survey) GetAllCommentsAverage() map[string]float64 {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var flights []Flight
-	s.db.Find(&flights)
-
-	results := make(map[string]float64)
-
-	for _, f := range flights {
-		flightName := f.Name
-		comments, err := s.GetFlightComments(flightName)
-		if err != nil {
-			results[flightName] = 0
-			continue
+	flightsAverage := make(map[string]float64)
+	for _, flightName := range s.Flights {
+		flightAverage, _ := s.GetCommentsAverage(flightName)
+		if flightAverage != 0 {
+			flightsAverage[flightName] = flightAverage
 		}
-		results[flightName] = float64(AvgScore(comments))
 	}
-
-	return results
+	return flightsAverage
 }
 
 func (s *Survey) GetComments(flightName string) ([]string, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	// Check if flight exists
-	var flight Flight
-	if err := s.db.Where("name = ?", flightName).First(&flight).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("flight does not exist: %s", flightName)
+	comments := make([]string, 0)
+	if !s.FlightCheck(flightName) {
+		return comments, errors.New("flight does not exist")
+	}
+	for ticket, comment := range s.Comments {
+		if ticket.Flight == flightName {
+			comments = append(comments, comment.Text)
 		}
-		return nil, err
 	}
-
-	// Get comments
-	var comments []Comment
-	if err := s.db.Where("flight_name = ?", flightName).Find(&comments).Error; err != nil {
-		return nil, err
-	}
-
-	res := make([]string, 0, len(comments))
-	for _, c := range comments {
-		res = append(res, c.Text)
-	}
-	return res, nil
+	return comments, nil
 }
 
 func (s *Survey) GetAllComments() map[string][]string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var flights []Flight
-	s.db.Find(&flights)
-
-	results := make(map[string][]string)
-
-	for _, f := range flights {
-		flightName := f.Name
-		comments, err := s.GetComments(flightName)
-		if err != nil {
-			results[flightName] = []string{}
-			continue
-		}
-		results[flightName] = comments
+	flightComments := make(map[string][]string)
+	for _, flightName := range s.Flights {
+		flightComment, _ := s.GetComments(flightName)
+		flightComments[flightName] = flightComment
 	}
-
-	return results
+	return flightComments
 }
