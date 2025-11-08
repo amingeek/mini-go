@@ -24,7 +24,6 @@ func NewSurvey() *Survey {
 	}
 }
 
-// تابع کمکی برای گرد کردن به 2 رقم اعشار
 func round2(x float64) float64 {
 	return math.Round(x*100) / 100
 }
@@ -98,7 +97,7 @@ func (s *Survey) GetAllCommentsAverage() map[string]float64 {
 	for flightName := range s.flights {
 		commentsForFlight := s.comments[flightName]
 		if len(commentsForFlight) == 0 {
-			continue // پرواز بدون کامنت در خروجی نمی‌اید
+			continue
 		}
 		sum := 0
 		count := 0
@@ -133,11 +132,9 @@ func (s *Survey) GetComments(flightName string) ([]string, error) {
 func (s *Survey) GetAllComments() map[string][]string {
 	result := make(map[string][]string)
 
-	// اینجا از کل پروازها عبور می‌کنیم
 	for flightName := range s.flights {
 		commentsForFlight := s.comments[flightName]
 		if len(commentsForFlight) == 0 {
-			// اگر کامنت نیست، اسلایس خالی بگذار
 			result[flightName] = []string{}
 		} else {
 			texts := make([]string, 0, len(commentsForFlight))
