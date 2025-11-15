@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مثال ۳: وبلاگ شخصی</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+
+        .wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        header {
+            background: white;
+            padding: 2rem;
+            margin: 2rem 0;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        header h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .breadcrumb {
+            background: white;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+        }
+
+        .breadcrumb span {
+            color: #999;
+            margin: 0 0.5rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .blog-posts {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .blog-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s;
+        }
+
+        .blog-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .blog-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .blog-date {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .blog-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .blog-content {
+            padding: 2rem;
+        }
+
+        .blog-meta {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .blog-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .blog-excerpt {
+            color: #555;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+        }
+
+        .read-more {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .read-more:hover {
+            color: #764ba2;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .sidebar-widget {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .widget-title {
+            color: #667eea;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .categories-list {
+            list-style: none;
+        }
+
+        .categories-list li {
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .categories-list li:last-child {
+            border-bottom: none;
+        }
+
+        .categories-list a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .categories-list a:hover {
+            color: #667eea;
+        }
+
+        .category-count {
+            background: #667eea;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .search-widget {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-widget input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .search-widget input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-widget button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+
+        .search-widget button:hover {
+            transform: scale(1.05);
+        }
+
+        .tags-widget {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+        }
+
+        .tag {
+            background: #f0f0f0;
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .tag:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 3rem 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 0.8rem 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .pagination a {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .pagination a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .pagination .active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        /* Newsletter */
+        .newsletter {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            margin: 3rem 0;
+        }
+
+        .newsletter h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .newsletter p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .newsletter-form {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .newsletter-form input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+
+        .newsletter-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .newsletter-form button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+
+        .newsletter-form button:hover {
+            transform: translateY(-3px);
+        }
+
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 10px 10px 0 0;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-card h2 {
+                font-size: 1.3rem;
+            }
+
+            .sidebar {
+                order: 2;
+            }
+
+            .newsletter-form {
+                flex-direction: column;
+            }
+
+            .blog-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <header>
+            <h1>📝 وبلاگ من</h1>
+            <p class="subtitle">مقالات و نکات در مورد وب‌طراحی و توسعه</p>
+        </header>
+
+        <div class="breadcrumb">
+            <a href="#home">خانه</a>
+            <span>/</span>
+            <a href="#blog">وبلاگ</a>
+            <span>/</span>
+            <span>صفحه اول</span>
+        </div>
+
+        <div class="main-content">
+            <section class="blog-posts">
+                <!-- پست ۱ -->
+                <article class="blog-card">
+                    <div class="blog-header">
+                        <div class="blog-date">۱۵ آبان ۱۴۰۳</div>
+                        <h2>شروع کار با HTML</h2>
+                    </div>
+                    <div class="blog-content">
+                        <div class="blog-meta">
+                            <span>👤 نویسنده: علی محمدی</span>
+                            <span>📂 دسته‌بندی: آموزش</span>
+                            <span>💬 ۱۲ نظر</span>
+                        </div>
+                        <p class="blog-excerpt">
+                            در این مقاله، ما بررسی می‌کنیم که HTML چیست و چگونه می‌توانید 
+                            اولین صفحه وب خود را بسازید. HTML بنیاد هر صفحه وب است و یادگیری 
+                            آن برای هر توسعه‌دهنده وب ضروری است.
+                        </p>
+                        <a href="#" class="read-more">ادامه مطلب →</a>
+                    </div>
+                </article>
+
+                <!-- پست ۲ -->
+                <article class="blog-card">
+                    <div class="blog-header">
+                        <div class="blog-date">۱۲ آبان ۱۴۰۳</div>
+                        <h2>استادی در CSS - نکات پیشرفته</h2>
+                    </div>
+                    <div class="blog-content">
+                        <div class="blog-meta">
+                            <span>👤 نویسنده: فاطمه حسنی</span>
+                            <span>📂 دسته‌بندی: طراحی</span>
+                            <span>💬 ۸ نظر</span>
+                        </div>
+                        <p class="blog-excerpt">
+                            CSS یکی از ستون‌های مهم طراحی وب است. این مقاله تکنیک‌های پیشرفته‌ای 
+                            مثل Grid، Flexbox، و انیمیشن‌های CSS را پوشش می‌دهد. یاد بگیرید چطور 
+                            صفحات واقعاً جذاب و حرفه‌ای بسازید.
+                        </p>
+                        <a href="#" class="read-more">ادامه مطلب →</a>
+                    </div>
+                </article>
+
+                <!-- پست ۳ -->
+                <article class="blog-card">
+                    <div class="blog-header">
+                        <div class="blog-date">۱۰ آبان ۱۴۰۳</div>
+                        <h2>JavaScript برای مبتدیان</h2>
+                    </div>
+                    <div class="blog-content">
+                        <div class="blog-meta">
+                            <span>👤 نویسنده: محمد رضایی</span>
+                            <span>📂 دسته‌بندی: برنامه‌نویسی</span>
+                            <span>💬 ۲۰ نظر</span>
+                        </div>
+                        <p class="blog-excerpt">
+                            JavaScript زبان برنامه‌نویسی وب است. اگر می‌خواهید صفحات تعاملی بسازید، 
+                            باید JavaScript را یاد بگیرید. این راهنمای جامع شما را از صفر تا سطح 
+                            متوسط JavaScript یاد می‌دهد.
+                        </p>
+                        <a href="#" class="read-more">ادامه مطلب →</a>
+                    </div>
+                </article>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <span class="active">۱</span>
+                    <a href="#">۲</a>
+                    <a href="#">۳</a>
+                    <a href="#">بعد →</a>
+                </div>
+            </section>
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- جستجو -->
+                <div class="sidebar-widget">
+                    <div class="widget-title">🔍 جستجو</div>
+                    <div class="search-widget">
+                        <input type="text" placeholder="جستجو...">
+                        <button>جستجو</button>
+                    </div>
+                </div>
+
+                <!-- دسته‌بندی‌ها -->
+                <div class="sidebar-widget">
+                    <div class="widget-title">📂 دسته‌بندی‌ها</div>
+                    <ul class="categories-list">
+                        <li>
+                            <a href="#">
+                                <span>آموزش</span>
+                                <span class="category-count">۱۲</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <span>طراحی</span>
+                                <span class="category-count">۸</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <span>برنامه‌نویسی</span>
+                                <span class="category-count">۱۵</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <span>نکات و ترفند</span>
+                                <span class="category-count">۲۰</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <span>خبر</span>
+                                <span class="category-count">۶</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- برچسب‌ها -->
+                <div class="sidebar-widget">
+                    <div class="widget-title">🏷️ برچسب‌ها</div>
+                    <div class="tags-widget">
+                        <a href="#" class="tag">HTML</a>
+                        <a href="#" class="tag">CSS</a>
+                        <a href="#" class="tag">JavaScript</a>
+                        <a href="#" class="tag">طراحی</a>
+                        <a href="#" class="tag">وب</a>
+                        <a href="#" class="tag">Responsive</a>
+                        <a href="#" class="tag">Frontend</a>
+                        <a href="#" class="tag">Backend</a>
+                    </div>
+                </div>
+
+                <!-- آخرین پست‌ها -->
+                <div class="sidebar-widget">
+                    <div class="widget-title">📰 آخرین پست‌ها</div>
+                    <ul class="categories-list">
+                        <li><a href="#">شروع کار با HTML</a></li>
+                        <li><a href="#">استادی در CSS</a></li>
+                        <li><a href="#">JavaScript برای مبتدیان</a></li>
+                        <li><a href="#">طراحی ریسپانسیو</a></li>
+                        <li><a href="#">Flexbox و Grid</a></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+
+        <!-- خبرنامه -->
+        <div class="newsletter">
+            <h2>📬 خبرنامه ما را دنبال کنید</h2>
+            <p>آخرین مقالات و نکات را مستقیماً در ایمیل خود دریافت کنید</p>
+            <div class="newsletter-form">
+                <input type="email" placeholder="ایمیل خود را وارد کنید">
+                <button>عضویت</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p><strong>© 2025 وبلاگ من - تمامی حقوق محفوظ است</strong></p>
+        <p>ایمیل: blog@example.com | تلفن: ۰۲۱-۱۲۳۴۵۶۷۸</p>
+    </footer>
+
+    <script>
+        document.querySelector('.newsletter-form button').addEventListener('click', function() {
+            const email = document.querySelector('.newsletter-form input').value;
+            if (email) {
+                alert(`تشکر! ایمیل ${email} ثبت شد.`);
+                document.querySelector('.newsletter-form input').value = '';
+            }
+        });
+    </script>
+</body>
+</html>

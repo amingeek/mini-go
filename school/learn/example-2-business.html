@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مثال ۲: سایت کسب‌وکار</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: #f8f9fa;
+        }
+
+        header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: #333;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            color: #667eea;
+        }
+
+        .hero {
+            margin-top: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5rem 2rem;
+            text-align: center;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .services {
+            padding: 4rem 2rem;
+            background: white;
+            margin: 2rem 0;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .services h2 {
+            text-align: center;
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .service-card {
+            background: #f9f9f9;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            border-top: 3px solid #667eea;
+            transition: all 0.3s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .service-card h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .service-card p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .features {
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 2rem 0;
+            border-radius: 10px;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .feature-item::before {
+            content: "✓";
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .pricing {
+            padding: 4rem 2rem;
+            background: white;
+            margin: 2rem 0;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .pricing h2 {
+            text-align: center;
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .pricing-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .pricing-card.featured {
+            border-color: #667eea;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+            transform: scale(1.05);
+        }
+
+        .pricing-card h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .price {
+            font-size: 2.5rem;
+            color: #667eea;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin: 1.5rem 0;
+            text-align: right;
+        }
+
+        .pricing-features li {
+            padding: 0.5rem 0;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
+            width: 100%;
+            transition: transform 0.3s;
+        }
+
+        .pricing-button:hover {
+            transform: scale(1.05);
+        }
+
+        .testimonials {
+            padding: 4rem 2rem;
+            background: #f9f9f9;
+            margin: 2rem 0;
+            border-radius: 10px;
+        }
+
+        .testimonials h2 {
+            text-align: center;
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .testimonial-text {
+            color: #555;
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        footer {
+            background: #333;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        footer p {
+            margin: 0.5rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .services h2,
+            .features h2,
+            .pricing h2,
+            .testimonials h2 {
+                font-size: 1.5rem;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .header-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">🚀 کمپانی</div>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="#services">خدمات</a></li>
+                    <li><a href="#pricing">قیمت‌ها</a></li>
+                    <li><a href="#testimonials">نظرات</a></li>
+                    <li><a href="#contact">تماس</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1>خوش آمدید به کمپانی ما</h1>
+        <p>ما بهترین خدمات را برای کسب‌وکار شما فراهم می‌کنیم</p>
+        <button class="cta-button">شروع کنید</button>
+    </section>
+
+    <div class="container">
+        <section class="services" id="services">
+            <h2>خدمات ما</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🌐</div>
+                    <h3>طراحی وب</h3>
+                    <p>صفحات وب زیبا و مدرن که کاربران را جذب می‌کند</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">📱</div>
+                    <h3>اپ موبایل</h3>
+                    <p>اپلیکیشن‌های قدرتمند برای iOS و Android</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">🔒</div>
+                    <h3>امنیت</h3>
+                    <p>محافظت کامل داده‌های کسب‌وکار شما</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">📊</div>
+                    <h3>تحلیل</h3>
+                    <p>گزارش‌های دقیق و تحلیل عملکرد</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">⚡</div>
+                    <h3>سرعت</h3>
+                    <p>بارگذاری سریع و کارآیی بالا</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">💬</div>
+                    <h3>پشتیبانی</h3>
+                    <p>تیم پشتیبانی ۲۴/۷ برای کمک</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <h2>ویژگی‌های خاص ما</h2>
+            <ul class="features-list">
+                <li class="feature-item">طراحی responsive و موبایل‌دوست</li>
+                <li class="feature-item">سرعت بالا و عملکرد بهینه</li>
+                <li class="feature-item">امنیت سطح بالا</li>
+                <li class="feature-item">پشتیبانی تکنیکی عالی</li>
+                <li class="feature-item">بروزرسانی‌های رایگان</li>
+                <li class="feature-item">آماری و گزارش‌دهی</li>
+            </ul>
+        </section>
+
+        <section class="pricing" id="pricing">
+            <h2>پلان‌های قیمت‌گذاری</h2>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>شروع‌کن</h3>
+                    <div class="price">۵۰,۰۰۰ تومان</div>
+                    <p style="color: #666; margin-bottom: 1rem;">در ماه</p>
+                    <ul class="pricing-features">
+                        <li>✓ یک وب‌سایت</li>
+                        <li>✓ ۵ صفحه</li>
+                        <li>✓ ایمیل سفارشی</li>
+                        <li>✓ بک‌آپ ماهانه</li>
+                    </ul>
+                    <button class="pricing-button">انتخاب پلان</button>
+                </div>
+
+                <div class="pricing-card featured">
+                    <h3>⭐ پرطرفدار</h3>
+                    <div class="price">۱۵۰,۰۰۰ تومان</div>
+                    <p style="color: #666; margin-bottom: 1rem;">در ماه</p>
+                    <ul class="pricing-features">
+                        <li>✓ تمام امکانات شروع‌کن</li>
+                        <li>✓ صفحات نامحدود</li>
+                        <li>✓ فروشگاه آنلاین</li>
+                        <li>✓ بک‌آپ روزانه</li>
+                        <li>✓ پشتیبانی الویت</li>
+                    </ul>
+                    <button class="pricing-button">انتخاب پلان</button>
+                </div>
+
+                <div class="pricing-card">
+                    <h3>حرفه‌ای</h3>
+                    <div class="price">۳۰۰,۰۰۰ تومان</div>
+                    <p style="color: #666; margin-bottom: 1rem;">در ماه</p>
+                    <ul class="pricing-features">
+                        <li>✓ تمام امکانات پرطرفدار</li>
+                        <li>✓ API سفارشی</li>
+                        <li>✓ تکنیک‌شناس اختصاصی</li>
+                        <li>✓ بک‌آپ ساعتی</li>
+                        <li>✓ پشتیبانی ۲۴/۷</li>
+                    </ul>
+                    <button class="pricing-button">انتخاب پلان</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="testimonials" id="testimonials">
+            <h2>نظرات مشتریان</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-text">
+                        "کیفیت خدمات بسیار عالی است. پیشنهاد می‌کنم برای هر کسی که به وب‌سایت کیفی نیاز دارد."
+                    </div>
+                    <div class="testimonial-author">علی محمدی - فروشگاه‌دار</div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-text">
+                        "تیم بسیار کمک‌گار و پروفشنال بود. کار خود را در موعد مقرر تحویل دادند."
+                    </div>
+                    <div class="testimonial-author">فاطمه خدابخش - مشاور کسب‌وکار</div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-text">
+                        "پشتیبانی آن‌ها خیلی خوب است. هر مشکلی را سریع حل می‌کنند."
+                    </div>
+                    <div class="testimonial-author">محمد رضایی - کارآفرین</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p><strong>© 2025 کمپانی ما - تمامی حقوق محفوظ است</strong></p>
+        <p>ایمیل: info@company.com | تلفن: ۰۲۱-۱۲۳۴۵۶۷۸</p>
+    </footer>
+</body>
+</html>

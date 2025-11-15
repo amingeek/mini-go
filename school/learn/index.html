@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML و CSS - آموزش و نمونه پروژه‌ها</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1000px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 3rem 2rem;
+        }
+
+        .menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 0;
+        }
+
+        .menu-item {
+            background: #f8f9fa;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .menu-item a {
+            display: block;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .menu-item-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            font-size: 3rem;
+            text-align: center;
+        }
+
+        .menu-item-content {
+            padding: 1.5rem;
+        }
+
+        .menu-item-content h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .menu-item-content p {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .menu-item-content strong {
+            display: block;
+            margin-top: 1rem;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .content {
+                padding: 1.5rem;
+            }
+
+            .menu {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 آموزش HTML و CSS</h1>
+            <p>یک صفحه‌ی آموزشی جامع و نمونه پروژه‌های عملی</p>
+        </div>
+
+        <div class="content">
+            <div class="menu">
+                <!-- آموزش -->
+                <div class="menu-item">
+                    <a href="/tutorial">
+                        <div class="menu-item-icon">📚</div>
+                        <div class="menu-item-content">
+                            <h3>آموزش کامل</h3>
+                            <p>یاد بگیرید تمام تگ‌های HTML و ویژگی‌های CSS از صفر تا صد</p>
+                            <strong>کلیک کنید تا شروع کنید →</strong>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- نمونه ۱: بلاگ -->
+                <div class="menu-item">
+                    <a href="/blog">
+                        <div class="menu-item-icon">📝</div>
+                        <div class="menu-item-content">
+                            <h3>نمونه ۱: بلاگ</h3>
+                            <p>یک وب‌سایت بلاگ حرفه‌ای با طراحی جدید و رسپانسیو</p>
+                            <strong>دیدن نمونه →</strong>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- نمونه ۲: سایت شخصی -->
+                <div class="menu-item">
+                    <a href="/personal">
+                        <div class="menu-item-icon">👤</div>
+                        <div class="menu-item-content">
+                            <h3>نمونه ۲: سایت شخصی</h3>
+                            <p>پورتفولیو شخصی برای نمایش کارها و مهارت‌ها</p>
+                            <strong>دیدن نمونه →</strong>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- نمونه ۳: سایت شرکتی -->
+                <div class="menu-item">
+                    <a href="/business">
+                        <div class="menu-item-icon">🏢</div>
+                        <div class="menu-item-content">
+                            <h3>نمونه ۳: سایت شرکتی</h3>
+                            <p>سایت تجاری حرفه‌ای برای معریفی خدمات شرکت</p>
+                            <strong>دیدن نمونه →</strong>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
