@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ادیتور کد - Live Preview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            height: calc(100vh - 4rem);
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2rem;
+            font-weight: 900;
+        }
+
+        .header .subtitle {
+            color: #999;
+            font-size: 0.95rem;
+            margin-left: 2rem;
+        }
+
+        .editor-section,
+        .preview-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.2rem 1.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header .icon {
+            font-size: 1.5rem;
+        }
+
+        .editor-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        textarea {
+            flex: 1;
+            border: none;
+            padding: 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            resize: none;
+            outline: none;
+            color: #333;
+            background: #f8f9fa;
+            line-height: 1.6;
+        }
+
+        textarea::placeholder {
+            color: #bbb;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-top: 2px solid #eee;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-run:active {
+            transform: translateY(0);
+        }
+
+        .btn-clear {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-copy {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        .preview-content {
+            flex: 1;
+            overflow: auto;
+            padding: 1.5rem;
+            background: white;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .templates {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .template-btn {
+            padding: 0.6rem 1rem;
+            background: #e8e8ff;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .template-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .char-count {
+            font-size: 0.85rem;
+            color: #999;
+            margin-right: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+                gap: 1rem;
+            }
+
+            .header {
+                grid-column: 1;
+            }
+
+            body {
+                padding: 1rem;
+            }
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: #e8e8ff;
+            border: none;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .error-message {
+            background: #ffe8e8;
+            border-left: 4px solid #ff6b6b;
+            color: #d63031;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            background: #e8ffe8;
+            border-left: 4px solid #51cf66;
+            color: #2f7c31;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>✨ ادیتور کد زنده</h1>
+            <div class="subtitle">نوشته و فوری خروجی را ببینید</div>
+        </div>
+        <div class="char-count">
+            <span id="charCount">0</span> کاراکتر
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="editor-section">
+            <div class="section-header">
+                <span>📝 ادیتور HTML/CSS</span>
+                <span class="icon">✎</span>
+            </div>
+            <div class="editor-content">
+                <div class="info-box">
+                    HTML و CSS را وارد کنید و دکمه "اجرا" را بزنید تا نتیجه را ببینید
+                </div>
+                <div class="tab-buttons" id="templateButtons">
+                    <button class="tab-btn active" onclick="loadTemplate('hello')">سلام</button>
+                    <button class="tab-btn" onclick="loadTemplate('card')">کارت</button>
+                    <button class="tab-btn" onclick="loadTemplate('button')">دکمه</button>
+                    <button class="tab-btn" onclick="loadTemplate('form')">فرم</button>
+                    <button class="tab-btn" onclick="loadTemplate('table')">جدول</button>
+                </div>
+                <textarea id="codeInput" placeholder="کد HTML و CSS را اینجا وارد کنید..."></textarea>
+                <div class="buttons">
+                    <button class="btn btn-run" onclick="runCode()">▶ اجرا</button>
+                    <button class="btn btn-copy" onclick="copyCode()">📋 کپی</button>
+                    <button class="btn btn-clear" onclick="clearCode()">🗑 پاک کن</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <div class="section-header">
+                <span>👁️ پیش‌نمایش زنده</span>
+                <span class="icon">▶</span>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            <div class="preview-content" id="previewContent">
+                <div style="text-align: center; padding: 2rem; color: #bbb;">
+                    <p style="font-size: 3rem; margin-bottom: 1rem;">👀</p>
+                    <p>کد را وارد کنید و دکمه اجرا را بزنید</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const codeInput = document.getElementById('codeInput');
+        const previewContent = document.getElementById('previewContent');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const charCount = document.getElementById('charCount');
+
+        // الگوهای آماده
+        const templates = {
+            hello: `<div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 2rem;
+                border-radius: 15px;
+                text-align: center;
+                font-family: 'Segoe UI', sans-serif;
+            ">
+                <h1 style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 900;">
+                    👋 سلام!
+                </h1>
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+                    خوش آمدید به ادیتور زنده
+                </p>
+                <p style="font-size: 0.95rem; opacity: 0.9;">
+                    شما می‌توانید HTML و CSS را اینجا تایپ کنید و فوری خروجی را ببینید
+                </p>
+            </div>`,
+
+            card: `<div style="
+                background: white;
+                border-radius: 15px;
+                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                max-width: 400px;
+                font-family: 'Segoe UI', sans-serif;
+            ">
+                <img src="https://via.placeholder.com/400x200" style="
+                    width: 100%;
+                    border-radius: 10px;
+                    margin-bottom: 1.5rem;
+                ">
+                <h2 style="color: #667eea; margin-bottom: 0.5rem; font-size: 1.5rem;">
+                    عنوان کارت
+                </h2>
+                <p style="color: #666; line-height: 1.6; margin-bottom: 1rem;">
+                    این یک کارت نمونه است. می‌توانید متن و عکس را تغییر دهید.
+                </p>
+                <button style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 700;
+                    width: 100%;
+                    transition: transform 0.3s;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    کلیک کنید
+                </button>
+            </div>`,
+
+            button: `<div style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 2rem; font-family: 'Segoe UI', sans-serif;">
+                <button style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 0.8rem 1.5rem;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 700;
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    دکمه اصلی
+                </button>
+                <button style="
+                    background: #ff6b6b;
+                    color: white;
+                    padding: 0.8rem 1.5rem;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 700;
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    دکمه قرمز
+                </button>
+                <button style="
+                    background: #51cf66;
+                    color: white;
+                    padding: 0.8rem 1.5rem;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 700;
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    دکمه سبز
+                </button>
+                <button style="
+                    background: #ffa94d;
+                    color: white;
+                    padding: 0.8rem 1.5rem;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 700;
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    دکمه نارنجی
+                </button>
+            </div>`,
+
+            form: `<form style="
+                max-width: 500px;
+                padding: 2rem;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                font-family: 'Segoe UI', sans-serif;
+            ">
+                <h2 style="color: #667eea; margin-bottom: 1.5rem; font-size: 1.5rem;">
+                    فرم ثبت نام
+                </h2>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 600;">
+                        نام
+                    </label>
+                    <input type="text" placeholder="نام خود را وارد کنید" style="
+                        width: 100%;
+                        padding: 0.8rem;
+                        border: 2px solid #eee;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Segoe UI', sans-serif;
+                    ">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 600;">
+                        ایمیل
+                    </label>
+                    <input type="email" placeholder="ایمیل خود را وارد کنید" style="
+                        width: 100%;
+                        padding: 0.8rem;
+                        border: 2px solid #eee;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Segoe UI', sans-serif;
+                    ">
+                </div>
+                <button type="submit" style="
+                    width: 100%;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 0.8rem;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    margin-top: 1rem;
+                ">
+                    ثبت نام
+                </button>
+            </form>`,
+
+            table: `<table style="
+                width: 100%;
+                border-collapse: collapse;
+                margin: 2rem;
+                font-family: 'Segoe UI', sans-serif;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                border-radius: 10px;
+                overflow: hidden;
+            ">
+                <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <tr>
+                        <th style="padding: 1rem; text-align: right; font-weight: 700;">شماره</th>
+                        <th style="padding: 1rem; text-align: right; font-weight: 700;">نام</th>
+                        <th style="padding: 1rem; text-align: right; font-weight: 700;">امتیاز</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background: #f8f9fa; border-bottom: 1px solid #eee;">
+                        <td style="padding: 1rem;">1</td>
+                        <td style="padding: 1rem;">احمد</td>
+                        <td style="padding: 1rem; color: #51cf66; font-weight: 700;">95</td>
+                    </tr>
+                    <tr style="background: white; border-bottom: 1px solid #eee;">
+                        <td style="padding: 1rem;">2</td>
+                        <td style="padding: 1rem;">فاطمه</td>
+                        <td style="padding: 1rem; color: #51cf66; font-weight: 700;">92</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 1rem;">3</td>
+                        <td style="padding: 1rem;">علی</td>
+                        <td style="padding: 1rem; color: #51cf66; font-weight: 700;">88</td>
+                    </tr>
+                </tbody>
+            </table>`
+        };
+
+        function loadTemplate(name) {
+            codeInput.value = templates[name];
+            updateCharCount();
+            // تغییر فعال بودن دکمه
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function runCode() {
+            hideMessages();
+            const code = codeInput.value.trim();
+
+            if (!code) {
+                showError('لطفاً کد را وارد کنید!');
+                return;
+            }
+
+            try {
+                previewContent.innerHTML = code;
+                showSuccess('کد با موفقیت اجرا شد! ✨');
+
+                // حذف پیام بعد از 3 ثانیه
+                setTimeout(hideMessages, 3000);
+            } catch (error) {
+                showError('خطا: ' + error.message);
+            }
+        }
+
+        function clearCode() {
+            if (confirm('آیا مطمئن هستید؟')) {
+                codeInput.value = '';
+                previewContent.innerHTML = '<div style="text-align: center; padding: 2rem; color: #bbb;"><p style="font-size: 3rem; margin-bottom: 1rem;">👀</p><p>کد را وارد کنید و دکمه اجرا را بزنید</p></div>';
+                updateCharCount();
+                hideMessages();
+            }
+        }
+
+        function copyCode() {
+            navigator.clipboard.writeText(codeInput.value).then(() => {
+                showSuccess('کد کپی شد! 📋');
+                setTimeout(hideMessages, 2000);
+            });
+        }
+
+        function updateCharCount() {
+            charCount.textContent = codeInput.value.length;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = '❌ ' + message;
+            errorMessage.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = '✅ ' + message;
+            successMessage.style.display = 'block';
+        }
+
+        function hideMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        // به روزرسانی تعداد کاراکتر
+        codeInput.addEventListener('input', updateCharCount);
+
+        // اجرای کد با Ctrl+Enter
+        codeInput.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                runCode();
+            }
+        });
+
+        // بارگذاری الگو اولیه
+        loadTemplate('hello');
+    </script>
+</body>
+</html>

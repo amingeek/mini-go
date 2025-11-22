@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تست احراز هویت</title>
+    <style>
+        :root {
+            --color-background: #fcfcf9;
+            --color-surface: #fffffd;
+            --color-text: #13343b;
+            --color-text-secondary: #626c71;
+            --color-primary: #218085;
+            --color-primary-hover: #1d7480;
+            --color-border: rgba(94, 82, 64, 0.2);
+            --color-error: #c0152f;
+            --color-success: #218085;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-background: #1f2121;
+                --color-surface: #262828;
+                --color-text: #f5f5f5;
+                --color-text-secondary: rgba(167, 169, 169, 0.7);
+                --color-primary: #32b8c6;
+                --color-primary-hover: #2da6b2;
+                --color-border: rgba(119, 124, 124, 0.3);
+                --color-error: #ff5459;
+                --color-success: #32b8c6;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+            background: var(--color-background);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            padding: 32px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--color-text);
+        }
+
+        .subtitle {
+            color: var(--color-text-secondary);
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--color-text);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--color-surface);
+            color: var(--color-text);
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button[type="submit"]:hover {
+            background: var(--color-primary-hover);
+        }
+
+        button[type="submit"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.success {
+            background: rgba(33, 128, 133, 0.1);
+            color: var(--color-success);
+            border: 1px solid rgba(33, 128, 133, 0.2);
+            display: block;
+        }
+
+        .message.error {
+            background: rgba(192, 21, 47, 0.1);
+            color: var(--color-error);
+            border: 1px solid rgba(192, 21, 47, 0.2);
+            display: block;
+        }
+
+        .form-content {
+            display: none;
+        }
+
+        .form-content.active {
+            display: block;
+        }
+
+        .profile-section {
+            display: none;
+        }
+
+        .profile-section.active {
+            display: block;
+        }
+
+        .profile-info {
+            background: rgba(33, 128, 133, 0.05);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .profile-info p {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .profile-info strong {
+            color: var(--color-primary);
+        }
+
+        .token-display {
+            background: var(--color-background);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid var(--color-border);
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .endpoint-info {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .endpoint-info h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .endpoint-item {
+            background: var(--color-background);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .method.post {
+            background: rgba(33, 128, 133, 0.15);
+            color: var(--color-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div id="authSection">
+                <h1>تست احراز هویت</h1>
+                <p class="subtitle">برای تست API های ثبت‌نام و لاگین</p>
+
+                <div id="messageBox" class="message"></div>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('register')">ثبت‌نام</button>
+                    <button class="tab" onclick="switchTab('login')">ورود</button>
+                </div>
+
+                <div id="registerForm" class="form-content active">
+                    <form onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label for="reg-name">نام</label>
+                            <input type="text" id="reg-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-email">ایمیل</label>
+                            <input type="email" id="reg-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-password">رمز عبور</label>
+                            <input type="password" id="reg-password" minlength="6" required>
+                        </div>
+                        <button type="submit">ثبت‌نام</button>
+                    </form>
+                </div>
+
+                <div id="loginForm" class="form-content">
+                    <form onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label for="login-email">ایمیل</label>
+                            <input type="email" id="login-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">رمز عبور</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit">ورود</button>
+                    </form>
+                </div>
+
+                <div class="endpoint-info">
+                    <h3>API Endpoints مورد نیاز:</h3>
+                    <div class="endpoint-item">
+                        <span class="method post">POST</span>
+                        /auth/register
+                    </div>
+                    <div class="endpoint-item">
+                        <span class="method post">POST</span>
+                        /auth/login
+                    </div>
+                </div>
+            </div>
+
+            <div id="profileSection" class="profile-section">
+                <h1>پروفایل کاربر</h1>
+                <p class="subtitle">ورود موفقیت‌آمیز بود</p>
+
+                <div class="profile-info" id="userInfo"></div>
+
+                <div class="token-display" id="tokenDisplay"></div>
+
+                <button class="logout-btn" onclick="logout()">خروج</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        let currentToken = null;
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-content').forEach(f => f.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            
+            if (tab === 'register') {
+                document.getElementById('registerForm').classList.add('active');
+            } else {
+                document.getElementById('loginForm').classList.add('active');
+            }
+            
+            hideMessage();
+        }
+
+        function showMessage(message, type) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = `message ${type}`;
+        }
+
+        function hideMessage() {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.className = 'message';
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('ثبت‌نام با موفقیت انجام شد! اکنون می‌توانید وارد شوید.', 'success');
+                    event.target.reset();
+                    
+                    setTimeout(() => {
+                        switchTab('login');
+                        document.getElementById('login-email').value = email;
+                    }, 1500);
+                } else {
+                    showMessage(data.error || 'خطا در ثبت‌نام', 'error');
+                }
+            } catch (error) {
+                showMessage('خطا در اتصال به سرور. آیا سرور روی پورت 8080 در حال اجراست؟', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentToken = data.access_token;
+                    showProfile(data.user, data.access_token);
+                } else {
+                    showMessage(data.error || 'ایمیل یا رمز عبور اشتباه است', 'error');
+                }
+            } catch (error) {
+                showMessage('خطا در اتصال به سرور. آیا سرور روی پورت 8080 در حال اجراست؟', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function showProfile(user, token) {
+            document.getElementById('authSection').classList.remove('active');
+            document.getElementById('authSection').style.display = 'none';
+            
+            const profileSection = document.getElementById('profileSection');
+            profileSection.classList.add('active');
+            
+            const userInfo = document.getElementById('userInfo');
+            userInfo.innerHTML = `
+                <p><strong>نام:</strong> ${user.name}</p>
+                <p><strong>ایمیل:</strong> ${user.email}</p>
+                <p><strong>شناسه:</strong> ${user.id}</p>
+            `;
+            
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            tokenDisplay.innerHTML = `<strong>Access Token:</strong><br>${token}`;
+        }
+
+        function logout() {
+            currentToken = null;
+            
+            document.getElementById('profileSection').classList.remove('active');
+            document.getElementById('authSection').style.display = 'block';
+            
+            document.querySelectorAll('form').forEach(form => form.reset());
+            hideMessage();
+            
+            switchTab('login');
+        }
+    </script>
+</body>
+</html>

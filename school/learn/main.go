@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:embed html-css-tutorial.html example-1-personal.html example-2-business.html example-3-blog.html index.html
+//go:embed html-css-tutorial.html example-1-personal.html example-2-business.html example-3-blog.html index.html editor.html
 var embeddedFiles embed.FS
 
 func main() {
@@ -64,6 +64,17 @@ func main() {
 		content, err := embeddedFiles.ReadFile("example-2-business.html")
 		if err != nil {
 			c.JSON(500, gin.H{"error": "خطا در بارگذاری سایت شرکتی"})
+			return
+		}
+		c.Data(200, "text/html; charset=utf-8", content)
+	})
+
+
+	// صفحه ادیتور کد زنده
+	router.GET("/editor", func(c *gin.Context) {
+		content, err := embeddedFiles.ReadFile("editor.html")
+		if err != nil {
+			c.JSON(500, gin.H{"error": "خطا در بارگذاری ادیتور"})
 			return
 		}
 		c.Data(200, "text/html; charset=utf-8", content)
